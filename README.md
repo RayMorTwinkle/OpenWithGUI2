@@ -15,6 +15,7 @@ Instead of going through Finder's `Get Info -> Open with -> Change All...` flow 
 - Lists extension-to-default-app associations in a single table.
 - Shows the current default app, bundle ID, and status for each extension.
 - Filters rows by default app and status.
+- Filters rows by candidate app, so you can see every extension an app declares it can open.
 - Searches by extension only, so results stay predictable.
 - Supports multi-select, then assigns one app to all selected extensions in one action.
 - Shows candidate apps for a single extension before changing it.

@@ -24,6 +24,7 @@ final class AssociationListViewModel {
     var availableApps: [AppDescriptor] = []
     var selection: Set<String> = []
     var selectedDefaultAppBundleIdentifier: String?
+    var selectedCandidateAppBundleIdentifier: String?
     var selectedStatusFilter: AssociationStatusFlag?
     var searchText = ""
     var sort: Sort = .extensionAscending
@@ -53,7 +54,17 @@ final class AssociationListViewModel {
             return row.currentDefaultApp?.bundleIdentifier == selectedDefaultAppBundleIdentifier
         }
 
-        let statusFilteredRows = defaultAppFilteredRows.filter { row in
+        let candidateAppFilteredRows = defaultAppFilteredRows.filter { row in
+            guard let selectedCandidateAppBundleIdentifier else {
+                return true
+            }
+
+            return row.candidateApps.contains { app in
+                app.bundleIdentifier == selectedCandidateAppBundleIdentifier
+            }
+        }
+
+        let statusFilteredRows = candidateAppFilteredRows.filter { row in
             guard let selectedStatusFilter else {
                 return true
             }
@@ -81,6 +92,19 @@ final class AssociationListViewModel {
         Dictionary(
             rows.compactMap { row in
                 row.currentDefaultApp.map { ($0.bundleIdentifier, $0) }
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+        .values
+        .sorted {
+            $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+        }
+    }
+
+    var candidateAppFilterOptions: [AppDescriptor] {
+        Dictionary(
+            rows.flatMap { row in
+                row.candidateApps.map { ($0.bundleIdentifier, $0) }
             },
             uniquingKeysWith: { first, _ in first }
         )
@@ -128,6 +152,16 @@ final class AssociationListViewModel {
         reconcileSelectionWithVisibleRows()
     }
 
+    func applyCandidateAppFilter(_ app: AppDescriptor) {
+        selectedCandidateAppBundleIdentifier = app.bundleIdentifier
+        reconcileSelectionWithVisibleRows()
+    }
+
+    func clearCandidateAppFilter() {
+        selectedCandidateAppBundleIdentifier = nil
+        reconcileSelectionWithVisibleRows()
+    }
+
     func applyStatusFilter(_ status: AssociationStatusFlag) {
         selectedStatusFilter = status
         reconcileSelectionWithVisibleRows()
@@ -140,6 +174,12 @@ final class AssociationListViewModel {
 
     func clearDefaultAppFilterSelectingFirstVisibleRow() {
         clearDefaultAppFilter()
+        selection = []
+        selectFirstRowIfNeeded()
+    }
+
+    func clearCandidateAppFilterSelectingFirstVisibleRow() {
+        clearCandidateAppFilter()
         selection = []
         selectFirstRowIfNeeded()
     }

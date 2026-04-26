@@ -7,6 +7,7 @@ struct RootView: View {
     @State private var showingBatchPicker = false
     @State private var showingAddSheet = false
     @State private var showingDefaultAppFilterPicker = false
+    @State private var showingCandidateAppFilterPicker = false
     @State private var showingStatusFilterPicker = false
     @State private var showingSinglePicker = false
     @State private var singleSelectionExtension: String?
@@ -94,6 +95,15 @@ struct RootView: View {
                     }
                 }
 
+                Button(viewModel.selectedCandidateAppBundleIdentifier == nil ? "Filter by Candidate App" : "Clear Candidate Filter") {
+                    if viewModel.selectedCandidateAppBundleIdentifier == nil {
+                        showingCandidateAppFilterPicker = true
+                    } else {
+                        viewModel.clearCandidateAppFilterSelectingFirstVisibleRow()
+                        tableResetToken += 1
+                    }
+                }
+
                 Button(viewModel.selectedStatusFilter == nil ? "Filter by Status" : "Clear Status Filter") {
                     if viewModel.selectedStatusFilter == nil {
                         showingStatusFilterPicker = true
@@ -159,6 +169,30 @@ struct RootView: View {
 
                     viewModel.applyStatusFilter(status)
                     showingStatusFilterPicker = false
+                }
+            )
+        }
+        .sheet(isPresented: $showingCandidateAppFilterPicker) {
+            AppPickerSheet(
+                apps: viewModel.candidateAppFilterOptions,
+                title: "Filter by Candidate App",
+                searchPlaceholder: "Search apps",
+                candidateApps: [],
+                showsCandidateGrouping: false,
+                leadingChoices: [
+                    AppPickerChoice.special(
+                        id: "all-candidate-apps",
+                        title: "All Candidate Apps",
+                        subtitle: "Show every extension regardless of candidate app"
+                    )
+                ],
+                onSelectChoice: { choice in
+                    if choice.id == "special:all-candidate-apps" {
+                        viewModel.clearCandidateAppFilter()
+                    } else if let app = choice.appDescriptor {
+                        viewModel.applyCandidateAppFilter(app)
+                    }
+                    showingCandidateAppFilterPicker = false
                 }
             )
         }

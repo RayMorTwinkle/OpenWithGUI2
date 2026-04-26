@@ -69,6 +69,77 @@ struct AssociationListViewModelTests {
     }
 
     @Test
+    func exposesUniqueSortedCandidateAppFilterOptions() async throws {
+        let bandizip = AppDescriptor(
+            bundleIdentifier: "com.bandisoft.mac.bandizip365",
+            displayName: "Bandizip 365",
+            appURL: URL(fileURLWithPath: "/Applications/Bandizip365.app"),
+            isAvailable: true
+        )
+        let omniPlayer = AppDescriptor(
+            bundleIdentifier: "com.mac.utility.media.omniplayer",
+            displayName: "OmniPlayer",
+            appURL: URL(fileURLWithPath: "/Applications/OmniPlayer.app"),
+            isAvailable: true
+        )
+
+        let repository = RepositoryStub(
+            rows: [
+                ExtensionAssociationRow(rawExtension: "7z", currentDefaultApp: bandizip, candidateApps: [bandizip]),
+                ExtensionAssociationRow(rawExtension: "3gp2", currentDefaultApp: omniPlayer, candidateApps: [omniPlayer]),
+                ExtensionAssociationRow(rawExtension: "aac", currentDefaultApp: omniPlayer, candidateApps: [bandizip, omniPlayer])
+            ],
+            apps: [bandizip, omniPlayer]
+        )
+
+        let viewModel = AssociationListViewModel(repository: repository, writer: WriterStub(results: []))
+        await viewModel.load()
+
+        #expect(viewModel.candidateAppFilterOptions.map(\.bundleIdentifier) == [
+            "com.bandisoft.mac.bandizip365",
+            "com.mac.utility.media.omniplayer"
+        ])
+    }
+
+    @Test
+    func filtersVisibleRowsBySelectedCandidateApp() async throws {
+        let bandizip = AppDescriptor(
+            bundleIdentifier: "com.bandisoft.mac.bandizip365",
+            displayName: "Bandizip 365",
+            appURL: URL(fileURLWithPath: "/Applications/Bandizip365.app"),
+            isAvailable: true
+        )
+        let omniPlayer = AppDescriptor(
+            bundleIdentifier: "com.mac.utility.media.omniplayer",
+            displayName: "OmniPlayer",
+            appURL: URL(fileURLWithPath: "/Applications/OmniPlayer.app"),
+            isAvailable: true
+        )
+        let preview = AppDescriptor(
+            bundleIdentifier: "com.apple.Preview",
+            displayName: "Preview",
+            appURL: URL(fileURLWithPath: "/Applications/Preview.app"),
+            isAvailable: true
+        )
+
+        let repository = RepositoryStub(
+            rows: [
+                ExtensionAssociationRow(rawExtension: "7z", currentDefaultApp: bandizip, candidateApps: [bandizip]),
+                ExtensionAssociationRow(rawExtension: "3gp2", currentDefaultApp: omniPlayer, candidateApps: [omniPlayer]),
+                ExtensionAssociationRow(rawExtension: "aac", currentDefaultApp: omniPlayer, candidateApps: [bandizip, omniPlayer]),
+                ExtensionAssociationRow(rawExtension: "png", currentDefaultApp: preview, candidateApps: [preview])
+            ],
+            apps: [bandizip, omniPlayer, preview]
+        )
+
+        let viewModel = AssociationListViewModel(repository: repository, writer: WriterStub(results: []))
+        await viewModel.load()
+        viewModel.applyCandidateAppFilter(bandizip)
+
+        #expect(viewModel.visibleRows.map(\.normalizedExtension) == ["7z", "aac"])
+    }
+
+    @Test
     func filtersVisibleRowsBySelectedStatus() async throws {
         let preview = AppDescriptor(
             bundleIdentifier: "com.apple.Preview",
@@ -144,6 +215,37 @@ struct AssociationListViewModelTests {
     }
 
     @Test
+    func clearsCandidateFilterBackToAllApps() async throws {
+        let bandizip = AppDescriptor(
+            bundleIdentifier: "com.bandisoft.mac.bandizip365",
+            displayName: "Bandizip 365",
+            appURL: URL(fileURLWithPath: "/Applications/Bandizip365.app"),
+            isAvailable: true
+        )
+        let omniPlayer = AppDescriptor(
+            bundleIdentifier: "com.mac.utility.media.omniplayer",
+            displayName: "OmniPlayer",
+            appURL: URL(fileURLWithPath: "/Applications/OmniPlayer.app"),
+            isAvailable: true
+        )
+
+        let repository = RepositoryStub(
+            rows: [
+                ExtensionAssociationRow(rawExtension: "7z", currentDefaultApp: bandizip, candidateApps: [bandizip]),
+                ExtensionAssociationRow(rawExtension: "3gp2", currentDefaultApp: omniPlayer, candidateApps: [omniPlayer])
+            ],
+            apps: [bandizip, omniPlayer]
+        )
+
+        let viewModel = AssociationListViewModel(repository: repository, writer: WriterStub(results: []))
+        await viewModel.load()
+        viewModel.applyCandidateAppFilter(bandizip)
+        viewModel.clearCandidateAppFilter()
+
+        #expect(viewModel.visibleRows.map(\.normalizedExtension) == ["3gp2", "7z"])
+    }
+
+    @Test
     func clearStatusFilterSelectingFirstVisibleRowResetsSelectionToTopRow() async throws {
         let preview = AppDescriptor(
             bundleIdentifier: "com.apple.Preview",
@@ -201,6 +303,40 @@ struct AssociationListViewModelTests {
     }
 
     @Test
+    func clearCandidateFilterSelectingFirstVisibleRowResetsSelectionToTopRow() async throws {
+        let bandizip = AppDescriptor(
+            bundleIdentifier: "com.bandisoft.mac.bandizip365",
+            displayName: "Bandizip 365",
+            appURL: URL(fileURLWithPath: "/Applications/Bandizip365.app"),
+            isAvailable: true
+        )
+        let omniPlayer = AppDescriptor(
+            bundleIdentifier: "com.mac.utility.media.omniplayer",
+            displayName: "OmniPlayer",
+            appURL: URL(fileURLWithPath: "/Applications/OmniPlayer.app"),
+            isAvailable: true
+        )
+
+        let repository = RepositoryStub(
+            rows: [
+                ExtensionAssociationRow(rawExtension: "7z", currentDefaultApp: bandizip, candidateApps: [bandizip]),
+                ExtensionAssociationRow(rawExtension: "3gp2", currentDefaultApp: omniPlayer, candidateApps: [omniPlayer])
+            ],
+            apps: [bandizip, omniPlayer]
+        )
+
+        let viewModel = AssociationListViewModel(repository: repository, writer: WriterStub(results: []))
+        await viewModel.load()
+        viewModel.applyCandidateAppFilter(bandizip)
+        viewModel.selection = ["7z"]
+
+        viewModel.clearCandidateAppFilterSelectingFirstVisibleRow()
+
+        #expect(viewModel.selectedCandidateAppBundleIdentifier == nil)
+        #expect(viewModel.selection == ["3gp2"])
+    }
+
+    @Test
     func movesSelectionToFirstVisibleRowWhenFilterHidesCurrentSelection() async throws {
         let preview = AppDescriptor(
             bundleIdentifier: "com.apple.Preview",
@@ -230,6 +366,38 @@ struct AssociationListViewModelTests {
         viewModel.applyDefaultAppFilter(preview)
 
         #expect(viewModel.selection == ["jpg"])
+    }
+
+    @Test
+    func movesSelectionToFirstVisibleRowWhenCandidateFilterHidesCurrentSelection() async throws {
+        let bandizip = AppDescriptor(
+            bundleIdentifier: "com.bandisoft.mac.bandizip365",
+            displayName: "Bandizip 365",
+            appURL: URL(fileURLWithPath: "/Applications/Bandizip365.app"),
+            isAvailable: true
+        )
+        let omniPlayer = AppDescriptor(
+            bundleIdentifier: "com.mac.utility.media.omniplayer",
+            displayName: "OmniPlayer",
+            appURL: URL(fileURLWithPath: "/Applications/OmniPlayer.app"),
+            isAvailable: true
+        )
+
+        let repository = RepositoryStub(
+            rows: [
+                ExtensionAssociationRow(rawExtension: "7z", currentDefaultApp: bandizip, candidateApps: [bandizip]),
+                ExtensionAssociationRow(rawExtension: "3gp2", currentDefaultApp: omniPlayer, candidateApps: [omniPlayer]),
+                ExtensionAssociationRow(rawExtension: "aac", currentDefaultApp: omniPlayer, candidateApps: [bandizip, omniPlayer])
+            ],
+            apps: [bandizip, omniPlayer]
+        )
+
+        let viewModel = AssociationListViewModel(repository: repository, writer: WriterStub(results: []))
+        await viewModel.load()
+        viewModel.selection = ["3gp2"]
+        viewModel.applyCandidateAppFilter(bandizip)
+
+        #expect(viewModel.selection == ["7z"])
     }
 
     @Test
