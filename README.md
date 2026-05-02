@@ -54,6 +54,10 @@ OpenWithGUI is meant to make that state visible and editable without requiring u
 
 This project is licensed under the [MIT License](LICENSE).
 
+## Major Updates in This Fork
+
+- **Filter by app and batch change**: You can now filter all file extensions supported by a specific app, then select multiple extensions and batch change their default application in one action.
+
 ## Similar Projects
 
 - [ColeMei/openwith](https://github.com/ColeMei/openwith) - a Rust TUI project for managing macOS file extension associations from the terminal.
